@@ -1,2 +1,2 @@
-# basic_azure
-Basic Azure Setup with a few VNets, Subnets, Servers, Containers and Resource Groups for testing out other services
+# DemoAzureLandingZone
+Basic Azure Landing Zone that can be used as a base for learning and demos of other products
