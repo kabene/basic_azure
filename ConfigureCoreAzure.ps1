@@ -9,7 +9,7 @@ $ContainerRgName = 'rg-demo-containers'
 
 #Key Vault
 $VaultName= ("KeyVault-" + (Get-Random -Maximum 100))
-$VaultUser = 'simone.bennett.demo@outlook.com'
+$VaultUser = 'email@outlook.com'
 
 #Automation Account
 $AutomationAccountName = 'CoreInfraAutomationAC'
@@ -25,11 +25,11 @@ $WsDiagnosticTemplateFile = 'c:\temp\CreateDiagnosticSetting.json'
 $AgReceiverName = 'ag-core-infra-email-reciever'
 $AgName = 'ag-core-infra-alerts'
 $AgShortName = 'core-alerts'
-$ActionGroupEmailAddress = 'sibennett@microsoft.com'
+$ActionGroupEmailAddress = 'email@outlook.com'
 
 #Azure Consumption Budget
 $BudgetName = 'budgetcoreinfra'
-$BudgetContact = "sibennett@microsoft.com", "simone.bennett.demo@outlook.com"
+$BudgetContact = "email@outlook.com", "email@outlook.com"
 $BudgetAmount = '50'
 
 #Networking
