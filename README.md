@@ -1,5 +1,5 @@
 # Test Azure Subscription
-Populates a test azure subscription with some a: 
+Populates a test azure subscription with some: 
  * core-infra and containers resource group
  * Some demo Linux container instances
  * An Automation Account
