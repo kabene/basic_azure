@@ -9,7 +9,7 @@ $ContainerRgName = 'rg-demo-containers'
 
 #Key Vault
 $VaultName= ("KeyVault-" + (Get-Random -Maximum 100))
-$VaultUser = 'email@outlook.com'
+$VaultUser = 'simone.bennett.demo@outlook.com'
 
 #Automation Account
 $AutomationAccountName = 'CoreInfraAutomationAC'
@@ -29,7 +29,7 @@ $ActionGroupEmailAddress = 'email@outlook.com'
 
 #Azure Consumption Budget
 $BudgetName = 'budgetcoreinfra'
-$BudgetContact = "email@outlook.com", "email@outlook.com"
+$BudgetContact = "simone.bennett.demo@outlook.com", "sibennett@microsoft.com"
 $BudgetAmount = '50'
 
 #Networking
@@ -40,7 +40,7 @@ $BastionSubnetName = "BastionSubnet"
 #Container Group
 $ContainerGrpName = 'web01'
 
-#Define Virtual Machines and Domain Controllers
+#Define Virtual Machines
 #Ref https://www.jorgebernhardt.com/create-multiple-identical-vms-at-once-with-azure-powershell/
 #Get-AzComputeResourceSku | where {$_.Locations -icontains "$location"}
 $computerName = @("Pet-VM-01","Pet-VM-02","Pet-VM-03","Pet-VM-04")
