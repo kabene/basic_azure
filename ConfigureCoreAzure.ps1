@@ -1,5 +1,5 @@
 ﻿#Subscription Info
-$SubscriptionName = 'Free Trial'
+$SubscriptionName = 'MS_CA_SimoneBennett'
 $Location = 'australiasoutheast'
 
 #Resource Group
@@ -8,7 +8,7 @@ $BastionRgName = 'rg-bastion'
 $ContainerRgName = 'rg-demo-containers'
 
 #Key Vault
-$VaultName= ("KeyVault-" + (Get-Random -Maximum 100))
+$VaultName= ("CoreKeyVault-" + (Get-Random -Maximum 100))
 $VaultUser = 'simone.bennett.demo@outlook.com'
 
 #Automation Account
@@ -70,6 +70,8 @@ $BudgetEnd= ((Get-Date -Year $endYear -Month $month -Day 1).ToUniversalTime()).T
 #More info https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-5.8.0
 #Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force -Verbose
 Import-Module Az.Accounts
+
+#Connect to your Azure Account
 Connect-AzAccount
 
 #Select a subscription to work with
@@ -91,6 +93,7 @@ $AZSubscription = Get-AzSubscription -SubscriptionName $SubscriptionName
 Set-AzContext -Subscription $AzSubscription.id
 
 New-AzAutomationAccount -Name $AutomationAccountName -Location $Location -ResourceGroupName $RgName -Tag @{Department="CoreInfra"} -verbose
+Invoke-WebRequest https://raw.githubusercontent.com/azureautomation/runbooks/master/Utility/AzRunAs/Create-RunAsAccount.ps1 -outfile Create-RunAsAccount.ps1
 .\Create-RunAsAccount.ps1 -ResourceGroup $RgName -AutomationAccountName $AutomationAccountName -SubscriptionId $AZSubscription.Id -ApplicationDisplayName $DisplayNameofAADApplication  -SelfSignedCertPlainPassword $CertPwdSecureString -CreateClassicRunAsAccount $false
 
 
@@ -132,15 +135,13 @@ New-AzVirtualNetwork -Name $VnetName -ResourceGroupName $RgName `
     -location $Location -AddressPrefix "10.0.0.0/16" -Subnet $frontendSubnet,$backendSubnet,$natGatewaySubnet,$bastionSubnet
 
 
-#Create a bastion resource
-$bastion = New-AzBastion -ResourceGroupName $BastionRgName -Name $BastionName -PublicIpAddress $bastionpip -VirtualNetwork $VnetName
-
-
 #Create some demo containers
 New-AzContainerGroup -ResourceGroupName $ContainerRgName -Name $ContainerGrpName -Image nginx -OsType Linux -IpAddressType Public -Port @(8000)
 
 
 #Create some pet servers
+#Make sure the SKU you have specified is available in your subscrition
+
 #Virtual Network 
 $nicName = "NIC-"
 $vnet = Get-AzVirtualNetwork -Name $VnetName `
@@ -184,22 +185,22 @@ $vnet = Get-AzVirtualNetwork -Name $VnetName `
 #Create a monthly budget that sends an email and triggers an Action Group to send a second email 
 #Make sure the StartDate for your monthly budget is set to the first day of the current month
 
-#This is not working ref: https://github.com/Azure/azure-powershell/issues/11642
+#In May 2021 this had a bug and was not working. Check the GitHub issue for updates: https://github.com/Azure/azure-powershell/issues/11642
 #Can be manually created in the portal
 
-#New-AzConsumptionBudget `
-   #-Name $BudgetName `
-   #-Amount $BudgetAmount `
-   #-Category "Cost" `
-   #-TimeGrain "Monthly" `
-   #-StartDate $BudgetStart `
-   #-EndDate $BudgetEnd `
-   #-ContactEmail $BudgetContact `
-   #-ContactGroup $ActionGroupId `
-   #-NotificationKey "70 % Usage" `
-   #-NotificationEnabled `
-   #-NotificationThreshold 90 `
-   #-Debug
+New-AzConsumptionBudget `
+   -Name $BudgetName `
+   -Amount $BudgetAmount `
+   -Category "Cost" `
+   -TimeGrain "Monthly" `
+   -StartDate $BudgetStart `
+   -EndDate $BudgetEnd `
+   -ContactEmail $BudgetContact `
+   -ContactGroup $ActionGroupId `
+   -NotificationKey "70 % Usage" `
+   -NotificationEnabled `
+   -NotificationThreshold 90 `
+   -Debug
 
 
 
