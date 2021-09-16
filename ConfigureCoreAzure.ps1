@@ -1,5 +1,5 @@
 ﻿#Subscription Info
-$SubscriptionName = 'MS_CA_SimoneBennett'
+$SubscriptionName = 'Subscription_Name'
 $Location = 'australiasoutheast'
 
 #Resource Group
@@ -9,7 +9,7 @@ $ContainerRgName = 'rg-demo-containers'
 
 #Key Vault
 $VaultName= ("CoreKeyVault-" + (Get-Random -Maximum 100))
-$VaultUser = 'simone.bennett.demo@outlook.com'
+$VaultUser = 'email@outlook.com'
 
 #Automation Account
 $AutomationAccountName = 'CoreInfraAutomationAC'
@@ -29,7 +29,7 @@ $ActionGroupEmailAddress = 'email@outlook.com'
 
 #Azure Consumption Budget
 $BudgetName = 'budgetcoreinfra'
-$BudgetContact = "simone.bennett.demo@outlook.com", "sibennett@microsoft.com"
+$BudgetContact = "email@outlook.com", "email@email.com"
 $BudgetAmount = '50'
 
 #Networking
