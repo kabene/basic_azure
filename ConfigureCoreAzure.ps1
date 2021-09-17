@@ -1,5 +1,9 @@
 ﻿#Subscription Info
+<<<<<<< HEAD
 $SubscriptionName = 'subscriptionName'
+=======
+$SubscriptionName = 'Subscription_Name'
+>>>>>>> cf3d5a09e1a23ae05860beb161132917b053ccbc
 $Location = 'australiasoutheast'
 
 #Resource Group
@@ -8,7 +12,11 @@ $ContainerRgName = 'rg-demo-containers'
 
 #Key Vault
 $VaultName= ("CoreKeyVault-" + (Get-Random -Maximum 100))
+<<<<<<< HEAD
 $VaultUser = 'sibennett@microsoft.com'
+=======
+$VaultUser = 'email@outlook.com'
+>>>>>>> cf3d5a09e1a23ae05860beb161132917b053ccbc
 
 #Automation Account
 $AutomationAccountName = 'CoreInfraAutomationAC'
@@ -28,7 +36,11 @@ $ActionGroupEmailAddress = 'email@outlook.com'
 
 #Azure Consumption Budget
 $BudgetName = 'budgetcoreinfra'
+<<<<<<< HEAD
 $BudgetContact = "name@outlook.com", "name@microsoft.com"
+=======
+$BudgetContact = "email@outlook.com", "email@email.com"
+>>>>>>> cf3d5a09e1a23ae05860beb161132917b053ccbc
 $BudgetAmount = '50'
 
 #Networking

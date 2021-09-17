@@ -21,8 +21,10 @@ Populates a test azure subscription with:
    * A BackEndSubnet (10.0.0.4.0/24)
    * An AzureBastionSubnet (10.0.0.5.0/27) and Bastion PIP
 
-Make sure you configure usage and budget alerts so you don't use up all of your credits!
 
-For more info see: https://simone-au.medium.com/getting-started-with-azure-for-free-431d206c26a6
+* Make sure you configure usage and budget alerts so you don't use up all of your credits!
+* Repo also includes an excel file that can be used to create a bunch of test or fake Azure AD users using the "Bulk Upload" feature in the portal. 
 
-To clean up everything that has been created: Remove-AzResourceGroup -Name $rgname
+For a step by step guide: https://simone-au.medium.com/deploy-some-test-azure-resources-azure-ad-users-db36c06b7dd4
+
+To delete everything: Remove-AzResourceGroup -Name $rgname
