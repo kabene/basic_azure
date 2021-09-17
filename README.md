@@ -28,3 +28,6 @@ Populates a test azure subscription with:
 For a step by step guide: https://simone-au.medium.com/deploy-some-test-azure-resources-azure-ad-users-db36c06b7dd4
 
 To delete everything: Remove-AzResourceGroup -Name $rgname
+
+Diagram as at September 2021
+![image](https://user-images.githubusercontent.com/67363016/133755334-0ad18ece-4be8-454c-b85a-aa683d553721.png)
