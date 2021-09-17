@@ -1,15 +1,14 @@
 ﻿#Subscription Info
-$SubscriptionName = 'MS_CA_SimoneBennett'
+$SubscriptionName = 'subscriptionName'
 $Location = 'australiasoutheast'
 
 #Resource Group
 $RgName = 'rg-core-infra'
-$BastionRgName = 'rg-bastion'
 $ContainerRgName = 'rg-demo-containers'
 
 #Key Vault
 $VaultName= ("CoreKeyVault-" + (Get-Random -Maximum 100))
-$VaultUser = 'simone.bennett.demo@outlook.com'
+$VaultUser = 'sibennett@microsoft.com'
 
 #Automation Account
 $AutomationAccountName = 'CoreInfraAutomationAC'
@@ -17,9 +16,9 @@ $DisplayNameofAADApplication = 'CoreInfraGeneric'
 $CertPwdSecureString = Read-Host "Enter a Password for the Run As Account Certificate" -AsSecureString
 
 #Log Analytics Workspace
-$WsName = 'ws-core-infra'
-$WsTemplateFile = 'c:\temp\CreateWorkspace.json'
-$WsDiagnosticTemplateFile = 'c:\temp\CreateDiagnosticSetting.json'
+$WorkspaceName = "log-analytics-core-infra" + (Get-Random -Maximum 99999) # workspace names need to be unique in resource group
+$WorkspaceTemplateFile = 'c:\temp\CreateWorkspace.json'
+$WorkspaceDiagnosticTemplateFile = 'c:\temp\CreateDiagnosticSetting.json'
 
 #Action Group
 $AgReceiverName = 'ag-core-infra-email-reciever'
@@ -29,21 +28,23 @@ $ActionGroupEmailAddress = 'email@outlook.com'
 
 #Azure Consumption Budget
 $BudgetName = 'budgetcoreinfra'
-$BudgetContact = "simone.bennett.demo@outlook.com", "sibennett@microsoft.com"
+$BudgetContact = "name@outlook.com", "name@microsoft.com"
 $BudgetAmount = '50'
 
 #Networking
 $VnetName = 'vnet-core-infra'
-$BastionVnetName = "BastionVnet"
-$BastionSubnetName = "BastionSubnet"
+$BastionSubnetName = 'AzureBastionSubnet'
 
 #Container Group
 $ContainerGrpName = 'web01'
 
+#Azure Firewall
+$FirewallName = 'demo-firewall'
+
 #Define Virtual Machines
 #Ref https://www.jorgebernhardt.com/create-multiple-identical-vms-at-once-with-azure-powershell/
 #Get-AzComputeResourceSku | where {$_.Locations -icontains "$location"}
-$computerName = @("Pet-VM-01","Pet-VM-02","Pet-VM-03","Pet-VM-04")
+$computerName = @("Pet-VM-01","Pet-VM-02","Pet-VM-03","Pet-VM-03")
 $bastionName = "Bastion-Host-O1"
 $vmSize = "Standard_B1s"
 $publisherName = "MicrosoftWindowsServer"
@@ -80,7 +81,6 @@ Select-AzSubscription -Subscription $SubscriptionName
 #Create a new resource group for core infrastructure, demo containers & bastion host
 New-AzResourceGroup -Name $RgName -Location $Location -Tag @{Department="CoreInfra"}
 New-AzResourceGroup -Name $ContainerRgName -Location $Location -Tag @{Department="DemoContainers"}
-New-AzResourceGroup -Name $BastionRgName -Location $Location -Tag @{Department="DemoBastion"}
 
 
 #Create a new Key Vault and grant acess to your user
@@ -88,27 +88,50 @@ New-AzResourceGroup -Name $BastionRgName -Location $Location -Tag @{Department="
 New-AzKeyVault -VaultName $VaultName -ResourceGroupName $RgName -Location $location -EnabledForDeployment -EnabledForTemplateDeployment -EnabledForDiskEncryption -Sku Standard -Tag @{Department="CoreInfra"} -verbose
 Set-AzKeyVaultAccessPolicy -VaultName $VaultName -UserPrincipalName $VaultUser -PermissionsToSecrets get,set,delete
 
-#Create an Azure Automation and RunAs Account
+#Create a Log Analyitcs Workspace
+New-AzOperationalInsightsWorkspace -Location $Location -Name $WorkspaceName -Sku pergb2018 -ResourceGroupName $RgName
+
+#Create an Azure Automation account
 $AZSubscription = Get-AzSubscription -SubscriptionName $SubscriptionName
 Set-AzContext -Subscription $AzSubscription.id
-
 New-AzAutomationAccount -Name $AutomationAccountName -Location $Location -ResourceGroupName $RgName -Tag @{Department="CoreInfra"} -verbose
-Invoke-WebRequest https://raw.githubusercontent.com/azureautomation/runbooks/master/Utility/AzRunAs/Create-RunAsAccount.ps1 -outfile Create-RunAsAccount.ps1
-.\Create-RunAsAccount.ps1 -ResourceGroup $RgName -AutomationAccountName $AutomationAccountName -SubscriptionId $AZSubscription.Id -ApplicationDisplayName $DisplayNameofAADApplication  -SelfSignedCertPlainPassword $CertPwdSecureString -CreateClassicRunAsAccount $false
 
+#Create a RunAs Account - Has stopped working for me in some subs, need to troubleshoot
+#Invoke-WebRequest https://raw.githubusercontent.com/azureautomation/runbooks/master/Utility/AzRunAs/Create-RunAsAccount.ps1 -outfile Create-RunAsAccount.ps1
+#.\Create-RunAsAccount.ps1 -ResourceGroup $RgName -AutomationAccountName $AutomationAccountName -SubscriptionId $AZSubscription.Id -ApplicationDisplayName $DisplayNameofAADApplication  -SelfSignedCertPlainPassword $CertPwdSecureString -CreateClassicRunAsAccount $false
 
 #Create an action group email receiver and corresponding action group
 $email1 = New-AzActionGroupReceiver -EmailAddress $ActionGroupEmailAddress -Name $AgReceiverName -UseCommonAlertSchema
 $ActionGroupId = (Set-AzActionGroup -ResourceGroupName $RgName -Name $AgName -ShortName $AgShortName -Receiver $email1).Id
 
-#Create an NSG and Subnet with basic rules
+#Create a monthly budget that sends an email and triggers an Action Group to send a second email 
+#Make sure the StartDate for your monthly budget is set to the first day of the current month
+   #In May 2021 this had a bug and was not working. Check the GitHub issue for updates: https://github.com/Azure/azure-powershell/issues/11642
+   #Can be manually created in the portal
+
+New-AzConsumptionBudget `
+   -Name $BudgetName `
+   -Amount $BudgetAmount `
+   -Category "Cost" `
+   -TimeGrain "Monthly" `
+   -StartDate $BudgetStart `
+   -EndDate $BudgetEnd `
+   -ContactEmail $BudgetContact `
+   -ContactGroup $ActionGroupId `
+   -NotificationKey "70 % Usage" `
+   -NotificationEnabled `
+   -NotificationThreshold 90 `
+   -Debug
+
+
+#Create an NSG and subnets with basic rules
 $rdpRule = New-AzNetworkSecurityRuleConfig -Name rdp-rule -Description "Allow RDP" `
    -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 `
    -SourceAddressPrefix * -SourcePortRange * `
    -DestinationAddressPrefix * -DestinationPortRange 3389 
     
-$networkSecurityGroup = New-AzNetworkSecurityGroup -ResourceGroupName $RgName `
-  -Location $Location -Name "NSG-FrontEnd" -SecurityRules $rdpRule
+$CoreNetworkSecurityGroup = New-AzNetworkSecurityGroup -ResourceGroupName $RgName `
+  -Location $Location -Name "NSG-Core-Infra" -SecurityRules $rdpRule
 
 $natgatewaypip = New-AzPublicIpAddress -Name "natgatewaypip" -ResourceGroupName $RgName `
    -Location $Location -Sku "Standard" -IdleTimeoutInMinutes 4 -AllocationMethod "static"
@@ -123,31 +146,33 @@ $natGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name NatGatewaySubnet `
    -AddressPrefix "10.0.1.0/24" -InputObject $natGateway
 
 $frontendSubnet = New-AzVirtualNetworkSubnetConfig -Name FrontendSubnet `
-   -AddressPrefix "10.0.3.0/24" -NetworkSecurityGroup $NetworkSecurityGroup
+   -AddressPrefix "10.0.3.0/24" -NetworkSecurityGroup $CoreNetworkSecurityGroup
 
-$bastionSubnet = New-AzVirtualNetworkSubnetConfig -Name BastionSubnet `
-   -AddressPrefix "10.0.2.0/24"
+$bastionSubnet = New-AzVirtualNetworkSubnetConfig -Name $BastionSubnetName `
+   -AddressPrefix "10.0.5.0/27"
 
 $backendSubnet = New-AzVirtualNetworkSubnetConfig -Name BackendSubnet `
-   -AddressPrefix "10.0.4.0/24" -NetworkSecurityGroup $networkSecurityGroup
+   -AddressPrefix "10.0.4.0/24" -NetworkSecurityGroup $CoreNetworkSecurityGroup
+
+$firewallSubnet = New-AzVirtualNetworkSubnetConfig -Name AzureFirewallSubnet `
+   -AddressPrefix "10.0.2.0/26"
 
 New-AzVirtualNetwork -Name $VnetName -ResourceGroupName $RgName `
-    -location $Location -AddressPrefix "10.0.0.0/16" -Subnet $frontendSubnet,$backendSubnet,$natGatewaySubnet,$bastionSubnet
+    -location $Location -AddressPrefix "10.0.0.0/16" -Subnet $frontendSubnet,$backendSubnet,$natGatewaySubnet,$bastionSubnet,$firewallSubnet
 
+$VirtualNetwork = Get-AzVirtualNetwork -Name $VnetName
+
+#Comment demo resource creation sections out to suit your needs
+#Create a Basion Host
+New-AzBastion -ResourceGroupName $RgName -Name $bastionName -PublicIpAddress $bastionpip -VirtualNetwork $VirtualNetwork
 
 #Create some demo containers
 New-AzContainerGroup -ResourceGroupName $ContainerRgName -Name $ContainerGrpName -Image nginx -OsType Linux -IpAddressType Public -Port @(8000)
 
-
 #Create some pet servers
 #Make sure the SKU you have specified is available in your subscrition
-
-#Virtual Network 
+#Virtual Network Details
 $nicName = "NIC-"
-$vnet = Get-AzVirtualNetwork -Name $VnetName `
-                             -ResourceGroupName $RgName
- 
-
 
  for($i = 0; $i -le $ComputerName.count -1; $i++)  
 {
@@ -155,8 +180,9 @@ $vnet = Get-AzVirtualNetwork -Name $VnetName `
  $NIC = New-AzNetworkInterface -Name ($NICName+$ComputerName[$i]) `
                                -ResourceGroupName $RgName `
                                -Location $Location `
-                               -SubnetId $Vnet.Subnets[0].Id
+                               -SubnetId $VirtualNetwork.Subnets[1].Id
  
+#Virtual Machines
  $VirtualMachine = New-AzVMConfig -VMName $ComputerName[$i] `
                                   -VMSize $VMSize
  $VirtualMachine = Set-AzVMOperatingSystem -VM $VirtualMachine `
@@ -181,28 +207,27 @@ $vnet = Get-AzVirtualNetwork -Name $VnetName `
 }
 
 
+#Create an Azure Firewall & A Default Route to send all VM Traffic through the FW
+#Get a Public IP for the firewall
+$FWpip = New-AzPublicIpAddress -Name "fw-pip" -ResourceGroupName $rgName `
+  -Location $Location -AllocationMethod Static -Sku Standard
+$Azfw = New-AzFirewall -Name $FirewallName -ResourceGroupName $rgName -Location $Location -VirtualNetwork $VirtualNetwork -PublicIpAddress $FWpip
 
-#Create a monthly budget that sends an email and triggers an Action Group to send a second email 
-#Make sure the StartDate for your monthly budget is set to the first day of the current month
+#Save the firewall private IP address for future use
+$AzfwPrivateIP = $Azfw.IpConfigurations.privateipaddress
+$AzfwPrivateIP
 
-#In May 2021 this had a bug and was not working. Check the GitHub issue for updates: https://github.com/Azure/azure-powershell/issues/11642
-#Can be manually created in the portal
+#Create a default route
+$routeTableDG = New-AzRouteTable -Name Firewall-rt-table -ResourceGroupName $rgName -location $location -DisableBgpRoutePropagation
 
-New-AzConsumptionBudget `
-   -Name $BudgetName `
-   -Amount $BudgetAmount `
-   -Category "Cost" `
-   -TimeGrain "Monthly" `
-   -StartDate $BudgetStart `
-   -EndDate $BudgetEnd `
-   -ContactEmail $BudgetContact `
-   -ContactGroup $ActionGroupId `
-   -NotificationKey "70 % Usage" `
-   -NotificationEnabled `
-   -NotificationThreshold 90 `
-   -Debug
+#Create a route table
+ Add-AzRouteConfig -Name "DG-Route" -RouteTable $routeTableDG -AddressPrefix 0.0.0.0/0 -NextHopType "VirtualAppliance" -NextHopIpAddress $AzfwPrivateIP `
+ | Set-AzRouteTable
 
-
+#Associate the route table to the backend subnet
+Set-AzVirtualNetworkSubnetConfig `
+  -VirtualNetwork $VirtualNetwork -Name $backendSubnet.Name  -AddressPrefix 10.0.4.0/24 -RouteTable $routeTableDG `
+   | Set-AzVirtualNetwork
 
 #Resource Group Tags
 #Apply Tags to the Resource Group
@@ -212,6 +237,5 @@ Set-AzResourceGroup -Name $rgName -Tag @{Name="$rgName";AutoShutdownSchedule="8P
 $tagsToApply=(Get-AzResourceGroup -Name $rgName).tags
 get-AzResource -ResourceGroupName $rgName | foreach {
 	Set-AzResource -ResourceId $_.resourceid -Tag $tagsToApply -Force
-
 }
 
