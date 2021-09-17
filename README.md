@@ -24,3 +24,5 @@ Populates a test azure subscription with:
 Make sure you configure usage and budget alerts so you don't use up all of your credits!
 
 For more info see: https://simone-au.medium.com/getting-started-with-azure-for-free-431d206c26a6
+
+To clean up evrything that has been created: Remove-AzResourceGroup -Name $rgname
